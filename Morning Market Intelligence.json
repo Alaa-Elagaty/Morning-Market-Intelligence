@@ -1,0 +1,466 @@
+{
+  "name": "Morning Market Intelligence",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d9ef1547-338f-4428-a1a3-013149bc440e",
+      "name": "Every morning at 7 AM"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "News",
+        "options": {
+          "destinationFieldName": "AINews"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "1bb8f75d-7523-46a6-9a5f-2307922ae8a1",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.AINews }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "86bbe49f-4c10-453c-b0b3-7d8f9d1b33ab",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aa5d1872-169f-4625-bc30-fab50a9ce688",
+              "name": "News",
+              "value": "={{ [ \"https://aicentraltools.com/news/feed/\", \"https://hnrss.org/newest?q=AI\", \"https://techcrunch.com/category/artificial-intelligence/feed/ \" ] }}",
+              "type": "array"
+            },
+            {
+              "id": "9da657ac-db31-48ef-b6d8-54c7c0f112fe",
+              "name": "sendTo",
+              "value": "alaaelagaty@gmail.com",
+              "type": "string"
+            },
+            {
+              "id": "0b5bb1e6-03ce-4a4a-a32d-be5bc004e89e",
+              "name": "maxStories",
+              "value": "5",
+              "type": "number"
+            },
+            {
+              "id": "06bd87ab-7aad-4655-b7fc-743e45e8008c",
+              "name": "daysBack",
+              "value": "4",
+              "type": "string"
+            },
+            {
+              "id": "633e506d-92c1-4933-aaa3-b6cca498d1c5",
+              "name": "Keywords",
+              "value": "={{ [\"llm\", \"Openai\", \"machine learning\", \"agent\", \"google\", \"startup\", \"model\"] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2808063d-1ee1-48af-9475-1d41ac373c4c",
+      "name": "Search News"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "560e1007-b99a-443b-94a1-ed7a5e58338f",
+              "name": "Title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "83bb506f-aafc-42e9-a81d-e65936ef8e1c",
+              "name": "Link",
+              "value": "={{ $json.link }}",
+              "type": "string"
+            },
+            {
+              "id": "aa2960d9-ac72-458a-9f69-e5ba03b227ac",
+              "name": "publishDate",
+              "value": "={{ $json.pubDate }}",
+              "type": "string"
+            },
+            {
+              "id": "10ee50b1-d2a9-4e21-8c63-da2057d868cb",
+              "name": "daysAgo",
+              "value": "={{ Math.floor($now.diff(DateTime.fromISO($json.isoDate), 'days').days) }}",
+              "type": "string"
+            },
+            {
+              "id": "3023b031-abf6-4874-8389-ed8c2859d42a",
+              "name": "Keywords",
+              "value": "={{ $('Search News').first().json.Keywords.find(s => new RegExp('\\\\b' + s + '\\\\b', 'i').test($json.title || '')) || ''}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        800,
+        0
+      ],
+      "id": "750e5213-3b7b-4abc-81a8-1427c0635378",
+      "name": "Clean News"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "86a868aa-264e-4bb3-8680-8e07799eed84",
+              "leftValue": "={{ $json.daysAgo }}",
+              "rightValue": "={{ $('Search News').item.json.daysBack }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "b087b780-7119-468e-afb3-fb97862fb0cd",
+              "leftValue": "={{ $json.Keywords }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        992,
+        0
+      ],
+      "id": "b7c4f636-d34e-49a5-a957-2e72cf377910",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "publishDate",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "c9e72bb1-ada2-4bd2-990f-f9e03250ca60",
+      "name": "Sort"
+    },
+    {
+      "parameters": {
+        "maxItems": "={{ $('Search News').item.json.maxStories }}"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "8f6522e6-ba87-4d00-82fd-8603fad71f73",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "AI News",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "a0f8e294-0aee-44de-b339-1198d0df3db8",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "chatId": "8909472847",
+        "text": "=**AI News - {{ $now.toFormat('d LLL yyyy') }}**\n\n{{ $json[\"AI News\"].map((x, i) => (i + 1) + '. ' + x.Title + '\\n' + x.Link).join('\\n\\n').slice(0, 1900) }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2016,
+        -64
+      ],
+      "id": "e671a838-e43c-4d99-9809-b98a43bdbf5a",
+      "name": "Send a text message",
+      "webhookId": "c2a20e1d-bf45-45c1-a78f-e43d18b2aaa1",
+      "credentials": {
+        "telegramApi": {
+          "id": "vyxKnV9aW70TLUBz",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "alaaelagaty@gmail.com",
+        "subject": "AI News for Startups",
+        "message": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        176
+      ],
+      "id": "2b33b43a-d69d-45e8-982f-972530894539",
+      "name": "Send a message",
+      "webhookId": "dab0bbfe-2860-41dd-ae87-97a3dc36d01a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CDJtrxaEEBs2bDce",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a briefing message that explains what each story means\nfor the startup. Focus on the business impact, opportunities,\nrisks, and practical actions the startup could take.\n\nHere are the stories:\n{{ JSON.stringify($input.all().map(item => item.json), null, 2) }}\n\nReturn the briefing as HTML using the following design:\n- Use a main container with inline CSS.\n- Put the briefing inside a white floating box.\n- Add a subtle border, rounded corners, padding, and a soft shadow.\n- Use a dark blue heading and readable text.\n- Separate each story into its own section if multiple stories are discussed.\n- Use inline CSS only. Do not use <style> tags or external CSS.\n- Return only the HTML, without Markdown code fences.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1952,
+        128
+      ],
+      "id": "1ab1e03d-9186-4e3a-b92f-d546836ea142",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        400
+      ],
+      "id": "94fb8f0d-0ce7-4526-8e10-0cdb82cba487",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FYluXGu2AP3dcbo1",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every morning at 7 AM": {
+      "main": [
+        [
+          {
+            "node": "Search News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Clean News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search News": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean News": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a465f3ee-1d5e-47c6-8528-2df48a68009b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6c21f685483138afe68ed0e1d1c1fbd28f007f0019f465da970f5c2b6c19999a"
+  },
+  "nodeGroups": [],
+  "id": "KZSOxGFqqP0ELSIM",
+  "tags": []
+}
